@@ -1,0 +1,248 @@
+package com.diageo.mras.webservices.responses;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.xml.bind.annotation.XmlRootElement;
+
+import com.diageo.mras.webservices.modals.Brand;
+
+@XmlRootElement
+public class OfferResponse {
+
+	private Date StartDate;
+	private Date EndDate;
+	private String english;
+	private String regional;
+	private String offerValue;
+	private String currency;
+	private String redemptionWindow;
+	private boolean isRedeemable;
+	public boolean isRedeemable() {
+		return isRedeemable;
+	}
+
+	public void setRedeemable(boolean isRedeemable) {
+		this.isRedeemable = isRedeemable;
+	}
+
+	private int offerId;
+	private int offercheckIn;
+	private int campaignId;
+	private String promocode;
+	private String imageurl;
+	private String offerType;
+	private String offerName;
+	private boolean registrationRequired;
+	// Added in phase 2
+	private String redemptionTrackable;
+	private int redemptionLimit;
+	private String ghostImage;
+	private String mainImage;
+	private String giftable;
+	private String voucherCodeGeneration;
+	private String specialCampaign;
+	private String specialCampaignText;
+	private List<Brand> validBrands;
+	private String isRedeemAble;
+
+	public String getIsRedeemAble() {
+		return isRedeemAble;
+	}
+
+	public void setIsRedeemAble(String isRedeemAble) {
+		this.isRedeemAble = isRedeemAble;
+	}
+
+	public List<Brand> getValidBrands() {
+		return validBrands;
+	}
+
+	public void setValidBrands(List<Brand> validBrands) {
+		this.validBrands = validBrands;
+	}
+	public String getSpecialCampaignText() {
+		return specialCampaignText;
+	}
+
+	public void setSpecialCampaignText(String specialCampaignText) {
+		this.specialCampaignText = specialCampaignText;
+	}
+	public String getSpecialCampaign() {
+		return specialCampaign;
+	}
+
+	public void setSpecialCampaign(String specialCampaign) {
+		this.specialCampaign = specialCampaign;
+	}
+
+
+	public String getRedemptionWindow() {
+		return redemptionWindow;
+	}
+
+	public void setRedemptionWindow(String redemptionWindow) {
+		this.redemptionWindow = redemptionWindow;
+	}
+
+	public String getGiftable() {
+		return giftable;
+	}
+
+	public void setGiftable(String giftable) {
+		this.giftable = giftable;
+	}
+
+	public String getVoucherCodeGeneration() {
+		return voucherCodeGeneration;
+	}
+
+	public void setVoucherCodeGeneration(String voucherCodeGeneration) {
+		this.voucherCodeGeneration = voucherCodeGeneration;
+	}
+
+	public String getGhostImage() {
+		return ghostImage;
+	}
+
+	public void setGhostImage(String ghostImage) {
+		this.ghostImage = ghostImage;
+	}
+
+	public String getMainImage() {
+		return mainImage;
+	}
+
+	public void setMainImage(String mainImage) {
+		this.mainImage = mainImage;
+	}
+
+	public int getRedemptionLimit() {
+		return redemptionLimit;
+	}
+
+	public void setRedemptionLimit(int redemptionLimit) {
+		this.redemptionLimit = redemptionLimit;
+	}
+
+	public String getRedemptionTrackable() {
+		return redemptionTrackable;
+	}
+
+	public void setRedemptionTrackable(String redemptionTrackable) {
+		this.redemptionTrackable = redemptionTrackable;
+	}
+
+	public String getOfferType() {
+		return offerType;
+	}
+
+	public void setOfferType(String offerType) {
+		this.offerType = offerType;
+	}
+
+	public String getCurrency() {
+		return currency;
+	}
+
+	public void setCurrency(String currency) {
+		this.currency = currency;
+	}
+
+	public String getOfferValue() {
+		return offerValue;
+	}
+
+	public void setOfferValue(String consumerOfferValue) {
+		this.offerValue = consumerOfferValue;
+	}
+
+	public String getEnglish() {
+		return english;
+	}
+
+	public void setEnglish(String english) {
+		this.english = english;
+	}
+
+	public String getRegional() {
+		return regional;
+	}
+
+	public void setRegional(String regional) {
+		this.regional = regional;
+	}
+
+	public String getOfferName() {
+		return offerName;
+	}
+
+	public void setOfferName(String offerName) {
+		this.offerName = offerName;
+	}
+
+	public Date getStartDate() {
+		return StartDate;
+	}
+
+	public void setStartDate(Date startDate) {
+		StartDate = startDate;
+	}
+
+	public Date getEndDate() {
+		return EndDate;
+	}
+
+	public void setEndDate(Date endDate) {
+		EndDate = endDate;
+	}
+
+	public boolean isRegistrationRequired() {
+		return registrationRequired;
+	}
+
+	public void setRegistrationRequired(boolean registrationRequired) {
+		this.registrationRequired = registrationRequired;
+	}
+
+	public int getOfferId() {
+		return offerId;
+	}
+
+	public void setOfferId(int offerId) {
+		this.offerId = offerId;
+	}
+
+	public int getOffercheckIn() {
+		return offercheckIn;
+	}
+
+	public void setOffercheckIn(int offercheckIn) {
+		this.offercheckIn = offercheckIn;
+	}
+
+	public int getCampaignId() {
+		return campaignId;
+	}
+
+	public void setCampaignId(int campaignId) {
+		this.campaignId = campaignId;
+	}
+
+	public String getPromocode() {
+		return promocode;
+	}
+
+	public void setPromocode(String promocode) {
+		this.promocode = promocode;
+	}
+
+	public String getImageurl() {
+		return imageurl;
+	}
+
+	public void setImageurl(String imageurl) {
+		this.imageurl = imageurl;
+	}
+
+}

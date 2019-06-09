@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+	id="WebApp_ID" version="2.5">
+	<display-name>com.diageo.mras.webservices</display-name>
+	<servlet>
+		<servlet-name>Jersey REST Service</servlet-name>
+		<servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
+		<init-param>
+			<param-name>com.sun.jersey.config.property.packages</param-name>
+			<param-value>com.diageo.mras.webservices.services</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>Jersey REST Service</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+
+
+<servlet>
+    <description></description>
+    <display-name>InboundSms</display-name>
+    <servlet-name>InboundSms</servlet-name>
+    <servlet-class>com.diageo.mras.webservices.smsaggregator.InboundSms</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>InboundSms</servlet-name>
+    <url-pattern>/inboundSMS.do</url-pattern>
+  </servlet-mapping>
+
+
+	<!-- <resource-ref>
+		<description>MRAS JNDI</description>
+		<res-ref-name>jdbc/MrasDS</res-ref-name>
+		<res-type>javax.sql.DataSource</res-type>
+		<res-auth>Container</res-auth>
+		<mapped-name>jdbc/MrasDS</mapped-name>
+	</resource-ref> -->
+
+
+
+</web-app>
+	

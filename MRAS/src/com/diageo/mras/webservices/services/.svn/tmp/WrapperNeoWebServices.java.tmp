@@ -1,0 +1,572 @@
+package com.diageo.mras.webservices.services;
+
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.text.Format;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+
+import org.apache.log4j.Logger;
+
+import com.diageo.mras.cache.MrasCache;
+import com.diageo.mras.webservices.dao.RewardResourceDao;
+import com.diageo.mras.webservices.init.MrasConstants;
+import com.diageo.mras.webservices.init.PropertyReader;
+import com.diageo.mras.webservices.responses.Answer;
+import com.diageo.mras.webservices.responses.Consumer;
+import com.diageo.mras.webservices.responses.ConsumerProfile;
+import com.diageo.mras.webservices.responses.LoginCredentials;
+import com.diageo.mras.webservices.responses.NeoEmailBean;
+import com.diageo.mras.webservices.responses.NeoPhoneBean;
+import com.diageo.mras.webservices.responses.Preferences;
+import com.diageo.mras.webservices.responses.QuestionAnswers;
+import com.diageo.mras.webservices.responses.QuestionCategory;
+import com.diageo.mras.webservices.responses.ResponseMRAS;
+import com.diageo.mras.webservices.responses.Responses;
+import com.diageo.mras.webservices.responses.SecretQuestions;
+import com.diageo.mras.webservices.responses.UserAccount;
+import com.diageo.mras.webservices.responses.WrapperResponse;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+
+@Path("/Wrapper")
+public class WrapperNeoWebServices {
+	private static String NEO_URL_AGE_AFFIRMATION = PropertyReader
+			.getPropertyValue(MrasConstants.NEO_URL_AGE_AFFIRMATION);
+	private static String NEO_URL_CONSUMER_REGISTRATION = PropertyReader
+			.getPropertyValue(MrasConstants.NEO_URL_CONSUMER_REGISTRATION);
+
+	private static final Logger logger = Logger
+			.getLogger(WrapperNeoWebServices.class.getName());
+	private static final RewardResourceDao rewardResourceDao = new RewardResourceDao();
+	private static final RewardResource rewardResource = new RewardResource();
+	private static final String pattern = "[+]?\\d{2,3}\\s?[-]?\\d{2,4}\\s?[-]?\\d{3,6}";
+	private static final Format formatter2 = new SimpleDateFormat("yyyy-MM-dd");
+	private static final Format formatter3 = new SimpleDateFormat("yyyyMMdd");
+	private static final String emailPattern = "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*"
+			+ "@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
+
+	@POST
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/CompleteRegistration")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response completeRegistration(@Context HttpServletRequest Req,
+			com.diageo.mras.webservices.modals.Consumer consumerobj) {
+
+		String appId = consumerobj.getAppId();
+		String deviceId = consumerobj.getDeviceId();
+		int deviceType = consumerobj.getDeviceType();
+		String phoneNumber = consumerobj.getPhoneNumber();
+		String emailId = consumerobj.getEmailId();
+		String dateOfBirth = consumerobj.getDateOfBirth();
+		String gender = consumerobj.getGender();
+		String firstname = consumerobj.getFirstName();
+		String lastName = consumerobj.getLastName();
+		String countrycode = Integer.toString(consumerobj.getCountryCode());
+		String optionId = consumerobj.getOptionId();
+		String modifyFlag = consumerobj.getModifyFlag();
+		String communicationChannel = consumerobj.getCommunicationChannel();
+		String answerText = consumerobj.getAnswerText();
+		String brandId = consumerobj.getBrandId();
+		String loginName = consumerobj.getLoginName();
+		String passWord = consumerobj.getPassword();
+		String promoCode = consumerobj.getPromoCode();
+		// notification id to be removed
+		int notificationId = 1;
+		Response response = null;
+		ResponseMRAS responseObj = RewardResource.validateAppId(appId);
+		if (responseObj != null) {
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+		} else {
+			responseObj = new ResponseMRAS();
+		}
+		if ((deviceId == null) || (deviceType == 0) || (emailId == null)
+				|| countrycode == null || (phoneNumber == null)
+				|| firstname == null || lastName == null || loginName == null
+				|| passWord == null || gender == null || (dateOfBirth == null)
+				|| brandId == null || answerText == null || optionId == null
+				|| communicationChannel == null || modifyFlag == null
+				|| promoCode == null) {
+
+			responseObj.setResponseCode(404);
+			responseObj.setResponseMessage(WebConstant.MISSING_PARAMETER);
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+		}
+
+		if (!phoneNumber.matches(pattern)) {
+			responseObj.setResponseCode(425);
+			responseObj.setResponseMessage("Wrong PhoneNumber format");
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+		}
+		if (!emailId.matches(emailPattern)) {
+			responseObj.setResponseCode(437);
+			responseObj.setResponseMessage("Wrong Email format");
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+		}
+
+		Date birthDate = null;
+		try {
+			birthDate = (Date) formatter2.parseObject(dateOfBirth);
+		} catch (ParseException e) {
+			logger.info(WebConstant.DATE_FORMAT);
+
+			responseObj.setResponseCode(406);
+			responseObj.setResponseMessage(WebConstant.DATE_FORMAT);
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+		}
+
+		try {
+			JAXBContext contextObj = JAXBContext.newInstance(Consumer.class);
+			Marshaller marshallerObj = contextObj.createMarshaller();
+			marshallerObj.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+
+			ArrayList<QuestionCategory> questionCategorysListCL = new ArrayList<QuestionCategory>();
+			// ArrayList<QuestionAnswers> questionAnswersListCL = new
+			// ArrayList<QuestionAnswers>();
+			ArrayList<QuestionAnswers> questionAnswersListCL1 = new ArrayList<QuestionAnswers>();
+			ArrayList<QuestionAnswers> questionAnswersListCL4 = new ArrayList<QuestionAnswers>();
+			NeoEmailBean eobj = new NeoEmailBean(emailId, "1", "1", modifyFlag);
+			NeoPhoneBean phoneobj = new NeoPhoneBean(phoneNumber, "3",
+					modifyFlag);
+			ConsumerProfile consumerProfile = new ConsumerProfile(firstname,
+					lastName, dateOfBirth, phoneobj, promoCode, eobj);
+
+			/*
+			 * Answer answerDO68 = new Answer("2", "I", "email email", "10",
+			 * "1");
+			 * 
+			 * QuestionAnswers questionAnswersDO68 = new QuestionAnswers(68,
+			 * answerDO68); questionAnswersListCL.add(questionAnswersDO68);
+			 * 
+			 * Answer answerDO69 = new Answer("3", "I", "email email", "10",
+			 * "1");
+			 * 
+			 * QuestionAnswers questionAnswersDO69 = new QuestionAnswers(69,
+			 * answerDO69); questionAnswersListCL.add(questionAnswersDO69);
+			 */
+
+			Answer answerDO64 = new Answer(optionId, modifyFlag, null, brandId,
+					communicationChannel);
+
+			QuestionAnswers questionAnswersDO64 = new QuestionAnswers(64,
+					answerDO64);
+
+			questionAnswersListCL1.add(questionAnswersDO64);
+
+			Answer answerDO92 = new Answer(countrycode, modifyFlag, null, null,
+					null);
+
+			QuestionAnswers questionAnswersDO92 = new QuestionAnswers(92,
+					answerDO92);
+			questionAnswersListCL4.add(questionAnswersDO92);
+			/*
+			 * QuestionCategory questionCategoryDO6 = new QuestionCategory(6,
+			 * questionAnswersListCL);
+			 */
+
+			// questionCategorysListCL.add(questionCategoryDO6);
+			QuestionCategory questionCategoryDO1 = new QuestionCategory(1,
+					questionAnswersListCL1);
+			QuestionCategory questionCategoryDO4 = new QuestionCategory(4,
+					questionAnswersListCL4);
+
+			questionCategorysListCL.add(questionCategoryDO4);
+
+			questionCategorysListCL.add(questionCategoryDO1);
+
+			Preferences pobj = new Preferences(questionCategorysListCL);
+			LoginCredentials lobj = new LoginCredentials(loginName, passWord);
+
+			Answer objanswer = new Answer(null, modifyFlag, answerText, null,
+					null);
+			SecretQuestions ss = new SecretQuestions(62, objanswer);
+			UserAccount uobj = new UserAccount(lobj, ss);
+
+			Consumer consumer = new Consumer(consumerProfile, pobj, uobj);
+
+			StringWriter writer = new StringWriter();
+			marshallerObj.marshal(consumer, writer);
+
+			logger.info(writer.toString());
+
+			try {
+				Client client = Client.create();
+
+				String NEO_URL_WITH_APPID = NEO_URL_CONSUMER_REGISTRATION
+						.replace("temp_mras_appId", appId);
+
+				/*
+				 * WebResource webResource = client
+				 * .resource(NEO_URL_CONSUMER_REGISTRATION);
+				 */
+				WebResource webResource = client.resource(NEO_URL_WITH_APPID);
+				ClientResponse responseobj = webResource.type("text/xml").post(
+
+				ClientResponse.class, writer.toString());
+
+				if (responseobj.getStatus() == 201) {
+					// The output recieved need to be parsed to get consumerid
+
+					String location = responseobj.getLocation().toString();
+
+					int left = location.indexOf("consumers");
+					int right = location.indexOf("/registration");
+					int consumerId = Integer.parseInt(location.substring(
+							left + 10, right));
+
+					logger.info("ConsumerId generated from NeoConsumerRegistration Web service"
+							+ consumerId);
+
+					// Hardcoding consumerId for testing
+					// int consumerId = 21234;
+
+					int resultResponse = rewardResourceDao
+							.capturedeviceDetails(consumerId, deviceId,
+									deviceType, appId, notificationId,
+									phoneNumber, birthDate, gender, emailId);
+
+					switch (resultResponse) {
+					case 200: {
+						try {
+							List<Integer> offerList = rewardResourceDao
+									.getGiftedOffers(phoneNumber);
+							if (offerList != null) {
+								for (Integer offerid : offerList) {
+									int rewardCode = rewardResource
+											.generateRewardCode(consumerId);
+									rewardResourceDao.issueVoucher(consumerId,
+											offerid, null, rewardCode);
+								}
+							}
+						} catch (Exception e) {
+							responseObj
+									.setResponseMessage("Some Unhandled Error has occurred");
+							responseObj.setResponseCode(430);
+							response = Response.status(200).entity(responseObj)
+									.build();
+							return response;
+						}
+						WrapperResponse responseneoobj = new WrapperResponse();
+
+						responseneoobj.setConsumerId(consumerId);
+
+						response = Response.status(200).entity(responseneoobj)
+								.build();
+						return response;
+					}
+					case 403: {
+						responseObj.setResponseCode(418);
+						responseObj
+								.setResponseMessage(WebConstant.INVALID_DEVICEID);
+
+						response = Response.status(200).entity(responseObj)
+								.build();
+						/*
+						 * logger.debug("responseObj for the consumerId: " +
+						 * consumerId + " is " + responseObj);
+						 */
+
+						return response;
+					}
+					case 441: {
+						responseObj.setResponseCode(426);
+						responseObj
+								.setResponseMessage(WebConstant.INVALID_PHONENUMBER_441);
+						response = Response.status(200).entity(responseObj)
+								.build();
+						/*
+						 * logger.debug("responseObj for the consumerId: " +
+						 * consumerId + " is " + responseObj);
+						 */
+
+						return response;
+					}
+					case 419: {
+						responseObj.setResponseCode(419);
+						responseObj
+								.setResponseMessage(WebConstant.DEVICE_ID_ALREADY_EXISTS);
+						response = Response.status(200).entity(responseObj)
+								.build();
+						/*
+						 * logger.debug("responseObj for the consumerId: " +
+						 * consumerId + " is " + responseObj);
+						 */
+
+						return response;
+					}
+
+					}
+
+				} else {
+
+					String output = responseobj.getEntity(String.class);
+
+					JAXBContext contextObj1 = JAXBContext
+							.newInstance(Responses.class);
+					Unmarshaller uuobj = contextObj1.createUnmarshaller();
+
+					StringBuffer xmlStr = new StringBuffer(output);
+					Responses obj = (Responses) uuobj
+							.unmarshal(new StreamSource(new StringReader(xmlStr
+									.toString())));
+
+					logger.info("Message recieved from server is"
+							+ obj.getResponse().getResponseCode());
+					logger.info("Output from Server .... \n");
+					logger.info(output);
+
+					responseObj.setResponseCode(responseobj.getStatus());
+					responseObj.setResponseMessage(obj.getResponse()
+							.getResponseCode());
+					response = Response.status(200).entity(responseObj).build();
+					return response;
+
+				}
+
+			}
+
+			catch (Exception e) {
+				e.printStackTrace();
+				responseObj
+						.setResponseMessage("Some Unhandled Error has occurred");
+				responseObj.setResponseCode(430);
+				response = Response.status(200).entity(responseObj).build();
+				return response;
+				// TODO: handle exception
+			}
+
+		}
+
+		catch (Exception e) {
+			e.printStackTrace();
+			responseObj.setResponseMessage("Some Unhandled Error has occurred");
+			responseObj.setResponseCode(430);
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+			// TODO: handle exception
+		}
+		return response;
+
+	}
+
+	@POST
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/CompleteInstallation")
+	@Consumes(MediaType.APPLICATION_JSON)
+	public Response completeInstallation(@Context HttpServletRequest Req,
+			com.diageo.mras.webservices.modals.Consumer consumer) {
+
+		String appId = consumer.getAppId();
+		String deviceId = consumer.getDeviceId();
+		String dateOfBirth = consumer.getDateOfBirth();
+		String gatewayid = consumer.getGatewayid();
+		String countrycode = Integer.toString(consumer.getCountryCode());
+
+		int consumerid = 0;
+		Date birthDate = null;
+		Response response = null;
+		if (logger.isDebugEnabled()) {
+			logger.debug("AppId : " + appId + " ,DeviceId: " + deviceId);
+		}
+		// Validating the AppId
+		ResponseMRAS responseObj = RewardResource.validateAppId(appId);
+		if (responseObj != null) {
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+		} else {
+			responseObj = new ResponseMRAS();
+		}
+
+		if ((deviceId == null || dateOfBirth == null || countrycode == null || gatewayid == null)) {
+			responseObj.setResponseCode(404);
+			responseObj.setResponseMessage(WebConstant.MISSING_PARAMETER);
+			response = Response.status(200).entity(responseObj).build();
+			return response;
+		}
+
+		try {
+			birthDate = (Date) formatter2.parseObject(dateOfBirth);
+		} catch (ParseException e) {
+			logger.info(WebConstant.DATE_FORMAT);
+
+			responseObj.setResponseCode(406);
+			responseObj.setResponseMessage(WebConstant.DATE_FORMAT_HOURS);
+
+			response = Response.status(200).entity(responseObj).build();
+			/*
+			 * logger.debug("responseObj for the consumerId: " + consumerId +
+			 * " is " + responseObj);
+			 */
+			return response;
+		}
+
+		String countrycodeCache = (String) MrasCache.MCache.recover("country"
+				+ countrycode);
+		if (countrycodeCache == null) {
+			logger.debug("country code is null" + countrycode);
+
+			// not found in cache recive from db and update cache
+
+			countrycodeCache = rewardResourceDao.getCountrycode(countrycode);
+
+			if (countrycodeCache == null) {
+				logger.debug("countrycode is null");
+				responseObj
+						.setResponseMessage("Some Unhandled Error has occurred");
+				responseObj.setResponseCode(430);
+				response = Response.status(200).entity(responseObj).build();
+				return response;
+
+			}
+			MrasCache.MCache.admit("country" + countrycode, countrycodeCache);
+		}
+
+		try {
+
+			Client client = Client.create();
+
+			String dobformaated = dateOfBirth.replace("-", "");
+<<<<<<< .mine
+			
+			
+			String NEO_URL_AGE_WITH_APPID=NEO_URL_AGE_AFFIRMATION.replace("temp_mras_appId",appId);
+			
+		
+=======
+
+			String NEO_URL_AGE_WITH_APPID = NEO_URL_AGE_AFFIRMATION.replace(
+					"temp_mras_appId", appId);
+
+>>>>>>> .r551
+			WebResource webResource = client.resource(NEO_URL_AGE_WITH_APPID
+					+ "countrycode=" + countrycodeCache + "&dateofbirth="
+					+ dobformaated + "&gatewayid=" + gatewayid);
+
+			/*
+			 * WebResource webResource = client.resource(
+			 * "http://209.207.228.8/neowebservices/67131/1.3/consumers/affirmage?"
+			 * + "countrycode=" + countrycode + "&dateofbirth=" + dateOfBirth +
+			 * "&gatewayid=" + gatewayid);
+			 */
+
+			ClientResponse responses = webResource.accept("text/xml").get(
+					ClientResponse.class);
+
+			if (responses.getStatus() == 200) {
+
+				int offerId = rewardResourceDao.InstallationOfferId(appId);
+
+				if (offerId == 0) {
+
+					responseObj.setResponseCode(435);
+					responseObj
+							.setResponseMessage(WebConstant.No_Installationoffer_for_this_AppID);
+					response = Response.status(200).entity(responseObj).build();
+					return response;
+				}
+
+				else {
+
+					int rewardCode = new RewardResource()
+							.generateRewardCodedeviceid(deviceId);
+
+					int responseDao = rewardResourceDao.issueVoucher(
+							consumerid, offerId, deviceId, rewardCode);
+
+					switch (responseDao) {
+					case 405: {
+						responseObj.setResponseCode(responseDao);
+						responseObj
+								.setResponseMessage(WebConstant.INVALID_CONSUMERID);
+						break;
+					}
+					case 406: {
+						responseObj.setResponseCode(420);
+						responseObj
+								.setResponseMessage(WebConstant.INVALID_OFFERID);
+						break;
+					}
+					case 403: {
+						responseObj.setResponseCode(419);
+						responseObj
+								.setResponseMessage(WebConstant.DEVICE_ID_ALREADY_EXISTS);
+						break;
+					}
+					case 435: {
+						responseObj.setResponseCode(435);
+						responseObj
+								.setResponseMessage(WebConstant.CHECK_IN_REQUIRED);
+						break;
+					}
+
+					default: {
+						logger.info("Response recevied from DL layer for issue voucher for consumerId "
+								+ consumerid + " is " + responseDao);
+						responseObj.setResponseCode(responseDao);
+						responseObj.setResponseMessage(WebConstant.SUCCESSFUL);
+						break;
+					}
+
+					}
+					response = Response.status(200).entity(responseObj).build();
+					return response;
+				}
+
+			} else {
+				String output = responses.getEntity(String.class);
+
+				JAXBContext contextObj = JAXBContext
+						.newInstance(Responses.class);
+				Unmarshaller uu = contextObj.createUnmarshaller();
+
+				// StringBuffer xmlStr = new StringBuffer(output);
+				Responses obj = (Responses) uu.unmarshal(new StreamSource(
+						new StringReader(output)));
+
+				logger.info("Message recieved from server is"
+						+ obj.getResponse().getResponseCode());
+
+				logger.info("Output from Server .... \n");
+
+				responseObj.setResponseCode(responses.getStatus());
+				responseObj.setResponseMessage(obj.getResponse()
+						.getResponseCode());
+				response = Response.status(200).entity(responseObj).build();
+				return response;
+			}
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+			responseObj.setResponseMessage("Some Unhandled Error has occurred");
+			responseObj.setResponseCode(430);
+			response = Response.status(200).entity(responseObj).build();
+
+		}
+		return response;
+
+	}
+
+}

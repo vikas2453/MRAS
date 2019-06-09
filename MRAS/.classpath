@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="com/diageo/mras/webservices/dao/TimerTaskDao.java|com/diageo/mras/common/PushNotifications.java|com/diageo/mras/webservices/services/TestSchedulerWebService.java|com/diageo/mras/common/DateDistribution.java|com/diageo/mras/common/GenerateReport.java|com/diageo/mras/common/OutletDataUpload.java|com/diageo/mras/common/PushNotificationsTimer.java|com/diageo/mras/common/ReportForToday.java|com/diageo/mras/common/SAPExtract.java|com/diageo/mras/common/SpontaneousDistribution.java|com/diageo/mras/common/test.java|com/diageo/mras/common/UpdateCampaignStatus.java|com/diageo/mras/common/UpdateExpiredVocuhers.java|com/diageo/mras/common/UserReminderDAO.java|com/diageo/mras/common/WeeklyScheduler.java|com/diageo/mras/common/DailyScheduler.java|com/diageo/mras/common/SendNotificationsDAO.java|com/diageo/mras/common/GroupRewardissueScheduler.java|com/diageo/mras/common/C2DMUtil.java|com/diageo/mras/common/c2dm/" kind="src" path="src"/>
+	<classpathentry exported="true" kind="lib" path="WebContent/WEB-INF/lib"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
+	<classpathentry kind="con" path="org.eclipse.jst.server.core.container/org.eclipse.jst.server.generic.runtimeTarget/JBoss v4.2">
+		<attributes>
+			<attribute name="owner.project.facets" value="jst.web"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jre6">
+		<attributes>
+			<attribute name="owner.project.facets" value="java"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="build/classes"/>
+</classpath>
